@@ -1,0 +1,27 @@
+{
+    "testMode": false,
+	"correctEmoji": "⏰",
+    "emojiSet": [
+        "⏰",
+        "🕒",
+        "🕰️",
+        "🕞",
+        "🕤",
+        "🕘"
+    ],
+    "reactionDelayMin": 500,
+    "reactionDelayRange": 2000,
+    "hourlyInterval": 3600000,
+    "bongChannel": "1256376216156508285",
+    "bongAnnouncementsChannel": "1310653174616555520",
+    "timeKeeperRole": "1310012979407884389",
+    "adminRole": [
+		"1307486143809589331",
+		"1306089941008257175",
+		"1310016107876192296"
+	],
+    "bongMessageContent": "BONG!",
+    "testCommand": "!bong",
+    "alreadyTimeKeeperMessage": "Congratulations {member}, you are still the TimeKeeper! 🎉 You got a bit of XP and get to keep your fancy title.",
+    "newTimeKeeperMessage": "{old} is no longer the TimeKeeper. Congratulations {new}, you are the new TimeKeeper! 🎉 You got a bit of XP and a fany new title!"
+}
