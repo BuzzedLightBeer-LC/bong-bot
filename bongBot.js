@@ -2,6 +2,8 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const config = require('./config.json');
 require('dotenv').config();
+const AWS = require('aws-sdk');
+const client = new AWS.SecretsManager({ region: 'us-east-2' });
 
 const client = new Client({
     intents: [
@@ -213,7 +215,27 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-// Login the bot
-client.login(process.env.DISCORD_TOKEN).catch(error => {
-    console.error("Error logging in the bot. Check the DISCORD_TOKEN in your environment variables:", error);
-});
+async function getDiscordToken() {
+    try {
+        const data = await client.getSecretValue({ SecretId: 'BongBotSecret' }).promise();
+        if (data.SecretString) {
+            const secret = JSON.parse(data.SecretString);
+            return secret.DISCORD_TOKEN;
+        }
+        throw new Error('SecretString not found');
+    } catch (error) {
+        console.error('Error retrieving secret:', error);
+        throw error;
+    }
+}
+
+// Fetch the token and log in
+(async () => {
+    try {
+        const token = await getDiscordToken();
+        client.login(token);
+    } catch (error) {
+        console.error('Failed to start the bot:', error);
+    }
+})();
+
