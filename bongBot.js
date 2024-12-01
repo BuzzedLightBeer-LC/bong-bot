@@ -3,7 +3,6 @@ const { Client, GatewayIntentBits } = require('discord.js');
 const config = require('./config.json');
 require('dotenv').config();
 const AWS = require('aws-sdk');
-const client = new AWS.SecretsManager({ region: 'us-east-2' });
 
 const client = new Client({
     intents: [
@@ -11,7 +10,8 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMessageReactions,
-        GatewayIntentBits.GuildMembers
+        GatewayIntentBits.GuildMembers,
+		AWS.SecretsManager({ region: 'us-east-2' }),
     ]
 });
 
