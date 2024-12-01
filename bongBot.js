@@ -4,14 +4,32 @@ const config = require('./config.json');
 require('dotenv').config();
 const AWS = require('aws-sdk');
 
+// Initialize AWS Secrets Manager
+const secretsManager = new AWS.SecretsManager({ region: 'us-east-2' });
+
+// Function to retrieve Discord Token from AWS Secrets Manager
+async function getDiscordToken() {
+    try {
+        const data = await secretsManager.getSecretValue({ SecretId: 'BongBotSecret' }).promise();
+        if (data.SecretString) {
+            const secret = JSON.parse(data.SecretString);
+            return secret.DISCORD_TOKEN;
+        }
+        throw new Error('SecretString not found in Secrets Manager');
+    } catch (error) {
+        console.error('Error retrieving Discord token:', error);
+        throw error;
+    }
+}
+
+// Initialize Discord client
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMessageReactions,
-        GatewayIntentBits.GuildMembers,
-		AWS.SecretsManager({ region: 'us-east-2' }),
+        GatewayIntentBits.GuildMembers
     ]
 });
 
@@ -214,20 +232,6 @@ client.on('messageCreate', async (message) => {
         console.error("Error handling messageCreate event:", error);
     }
 });
-
-async function getDiscordToken() {
-    try {
-        const data = await client.getSecretValue({ SecretId: 'BongBotSecret' }).promise();
-        if (data.SecretString) {
-            const secret = JSON.parse(data.SecretString);
-            return secret.DISCORD_TOKEN;
-        }
-        throw new Error('SecretString not found');
-    } catch (error) {
-        console.error('Error retrieving secret:', error);
-        throw error;
-    }
-}
 
 // Fetch the token and log in
 (async () => {
