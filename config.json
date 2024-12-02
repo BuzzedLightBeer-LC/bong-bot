@@ -23,5 +23,6 @@
     "bongMessageContent": "BONG!",
     "testCommand": "!bong",
     "alreadyTimeKeeperMessage": "Congratulations {member}, you are still the TimeKeeper! 🎉 You got a bit of XP and get to keep your fancy title.",
-    "newTimeKeeperMessage": "{old} is no longer the TimeKeeper. Congratulations {new}, you are the new TimeKeeper! 🎉 You got a bit of XP and a fany new title!"
+    "newTimeKeeperMessage": "{old} is no longer the TimeKeeper. Congratulations {new}, you are the new TimeKeeper! 🎉 You got a bit of XP and a fany new title!",
+	"guildId": "1256376216156508281"
 }
