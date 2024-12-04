@@ -44,11 +44,18 @@ function delay(ms) {
 }
 
 // Function to react to the message with all emojis in random order
-async function reactWithEmojis(message) {
+async function reactWithEmojis(message, startCollectorCallback) {
     try {
         const shuffledEmojis = shuffleArray([...config.emojiSet]); // Shuffle the emoji set
         for (const emoji of shuffledEmojis) {
             await message.react(emoji);
+
+            // Start the collector immediately when the bot reacts with the correctEmoji
+            if (emoji === config.correctEmoji && startCollectorCallback) {
+                startCollectorCallback();
+            }
+
+            // Delay before reacting with the next emoji
             await delay(config.reactionDelayMin + Math.random() * config.reactionDelayRange);
         }
         console.log("Successfully reacted with all emojis in random order.");
@@ -114,7 +121,7 @@ async function sendBongMessage() {
             return;
         }
 
-        // **Delete any existing "Bong!" messages**
+        // Delete any existing "BONG!" messages
         try {
             const messages = await bongChannel.messages.fetch({ limit: 100 });
             const botMessages = messages.filter(msg => msg.author.id === client.user.id);
@@ -130,77 +137,87 @@ async function sendBongMessage() {
         // Send the new "BONG!" message
         const bongMessage = await bongChannel.send(config.bongMessageContent);
         console.log("BONG! message sent.");
-        await reactWithEmojis(bongMessage);
 
-        const reactedUsers = new Set();
+        let collectorStarted = false;
 
-        const collector = bongMessage.createReactionCollector({
-            dispose: true,
-            filter: (reaction, user) => !user.bot && reaction.emoji.name === config.correctEmoji
-        });
+        // Function to start the collector
+        const startCollector = () => {
+            if (collectorStarted) return; // Prevent duplicate collectors
+            collectorStarted = true;
 
-        collector.on('collect', async (reaction, user) => {
-            try {
-                if (reactedUsers.has(user.id)) {
-                    console.log(`${user.tag} already reacted. Ignoring.`);
-                    return;
-                }
+            const reactedUsers = new Set();
 
-                const guild = reaction.message.guild;
-                const member = await guild.members.fetch(user.id);
-                if (!member) {
-                    console.error("Member not found during reaction collection.");
-                    return;
-                }
+            const collector = bongMessage.createReactionCollector({
+                dispose: true,
+                filter: (reaction, user) => !user.bot && reaction.emoji.name === config.correctEmoji
+            });
 
-                const timeKeeperRole = guild.roles.cache.get(config.timeKeeperRole);
-                if (!timeKeeperRole) {
-                    console.error("TimeKeeper role not found. Check the 'timeKeeperRole' ID in the config file.");
-                    return;
-                }
-
-                reactedUsers.add(user.id);
-
-                const currentTimeKeeper = guild.members.cache.find(member => member.roles.cache.has(config.timeKeeperRole));
-                const announcementsChannel = await client.channels.fetch(config.bongAnnouncementsChannel);
-
-                if (currentTimeKeeper?.id === member.id) {
-                    await currentTimeKeeper.roles.remove(timeKeeperRole);
-                    await member.roles.add(timeKeeperRole);
-                    console.log(`${member.displayName} is already the TimeKeeper.`);
-                    if (announcementsChannel) {
-                        await announcementsChannel.send(config.alreadyTimeKeeperMessage.replace('{member}', member));
-                        console.log("Announcement sent.");
+            collector.on('collect', async (reaction, user) => {
+                try {
+                    if (reactedUsers.has(user.id)) {
+                        console.log(`${user.tag} already reacted. Ignoring.`);
+                        return;
                     }
-                } else {
-                    if (currentTimeKeeper) {
+
+                    const guild = reaction.message.guild;
+                    const member = await guild.members.fetch(user.id);
+                    if (!member) {
+                        console.error("Member not found during reaction collection.");
+                        return;
+                    }
+
+                    const timeKeeperRole = guild.roles.cache.get(config.timeKeeperRole);
+                    if (!timeKeeperRole) {
+                        console.error("TimeKeeper role not found. Check the 'timeKeeperRole' ID in the config file.");
+                        return;
+                    }
+
+                    reactedUsers.add(user.id);
+
+                    const currentTimeKeeper = guild.members.cache.find(member => member.roles.cache.has(config.timeKeeperRole));
+                    const announcementsChannel = await client.channels.fetch(config.bongAnnouncementsChannel);
+
+                    if (currentTimeKeeper?.id === member.id) {
                         await currentTimeKeeper.roles.remove(timeKeeperRole);
-                        console.log(`Removed TimeKeeper role from ${currentTimeKeeper.displayName}.`);
-                    }
-
-                    await member.roles.add(timeKeeperRole);
-                    console.log(`Assigned TimeKeeper role to ${member.displayName}.`);
-
-                    if (announcementsChannel) {
-                        await announcementsChannel.send(
-                            config.newTimeKeeperMessage
-                                .replace('{old}', currentTimeKeeper || 'nobody')
-                                .replace('{new}', member)
-                        );
-                        console.log("Announcement sent.");
+                        await member.roles.add(timeKeeperRole);
+                        console.log(`${member.displayName} is already the TimeKeeper.`);
+                        if (announcementsChannel) {
+                            await announcementsChannel.send(config.alreadyTimeKeeperMessage.replace('{member}', member));
+                            console.log("Announcement sent.");
+                        }
                     } else {
-                        console.error("Announcements channel not found. Check the 'bongAnnouncementsChannel' ID in the config file.");
-                    }
-                }
+                        if (currentTimeKeeper) {
+                            await currentTimeKeeper.roles.remove(timeKeeperRole);
+                            console.log(`Removed TimeKeeper role from ${currentTimeKeeper.displayName}.`);
+                        }
 
-                collector.stop();
-                console.log(`Stopped listening for reactions. Winner: ${member.displayName}`);
-                await bongMessage.delete();
-                console.log("BONG! message deleted.");
-            } catch (error) {
-                console.error("Error handling reaction collection:", error);
-            }
-        });
+                        await member.roles.add(timeKeeperRole);
+                        console.log(`Assigned TimeKeeper role to ${member.displayName}.`);
+
+                        if (announcementsChannel) {
+                            await announcementsChannel.send(
+                                config.newTimeKeeperMessage
+                                    .replace('{old}', currentTimeKeeper || 'nobody')
+                                    .replace('{new}', member)
+                            );
+                            console.log("Announcement sent.");
+                        } else {
+                            console.error("Announcements channel not found. Check the 'bongAnnouncementsChannel' ID in the config file.");
+                        }
+                    }
+
+                    collector.stop();
+                    console.log(`Stopped listening for reactions. Winner: ${member.displayName}`);
+                    await bongMessage.delete();
+                    console.log("BONG! message deleted.");
+                } catch (error) {
+                    console.error("Error handling reaction collection:", error);
+                }
+            });
+        };
+
+        // React to the message with emojis and start the collector as soon as the bot reacts with the correctEmoji
+        await reactWithEmojis(bongMessage, startCollector);
     } catch (error) {
         console.error("Error sending BONG! message:", error);
     }
